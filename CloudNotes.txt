@@ -1,0 +1,1212 @@
+Hardening Inicial
+
+- Backup do Arquivo de Configurações
+cp /etc/apt/sources.list /etc/apt/sources.list.bkp
+
+- Editar
+nano /etc/apt/sources.list
+####################################################################################
+#                               Repositórios Oficiais                              #
+####################################################################################
+
+deb http://deb.debian.org/debian/ stable main contrib non-free
+# deb-src http://deb.debian.org/debian/ stable main contrib non-free
+
+deb http://deb.debian.org/debian/ stable-updates main contrib non-free
+# deb-src http://deb.debian.org/debian/ stable-updates main contrib non-free
+
+deb http://deb.debian.org/debian-security stable/updates main contrib non-free
+# deb-src http://deb.debian.org/debian-security stable/updates main contrib non-free
+
+## Debian Stretch Backports
+# deb http://ftp.debian.org/debian stretch-backports main contrib non-free
+# deb-src http://ftp.debian.org/debian stretch-backports main contrib non-free
+
+# deb http://ftp.br.debian.org/debian/ stretch-proposed-updates main contrib non-free
+# deb-src http://ftp.debian.org/debian stretch-proposed-updates main contrib non-free
+####################################################################################
+
+#apt update && apt upgrade
+
+###Alguns Pacotes interessantes
+#apt -y install vim curl wget apt-transport-https dirmngr fping htop iptraf net-tools
+#apt -t stretch-backports install arno-iptables-firewall bleachbit checkinstall cpufrequtils deborphan disk-manager 
+        dosfstools fdupes gdebi gksu gparted hddtemp hdparm htop imagemagick lm-sensors lshw mlocate ntfs-3g ntp 
+		ntpdate os-prober pppconfig prelink preload python-notify rcconf rsync ruby secure-delete speedometer 
+		sudo synaptic testdisk trash-cli xbindkeys xbindkeys-config zenity freepats
+#apt -t stretch-backports install linux-headers-`uname -r` build-essential dkms packaging-dev
+#apt -t stretch-backports install autoconf automake automoc autotools-dev bin86 binutils bison bzr checkinstall 
+        cmake cpp devscripts dpkg-dev fakeroot flex g++ gcc gettext git intltool libasound2-dev libcurl4-openssl-dev 
+		libevent-dev libgl1-mesa-dri libglib2.0-dev libgtk-3-dev libgtk2.0-dev libncurses5 libncurses5-dev libnotify-dev 
+		libtool libxml2-dev mercurial mesa-utils module-assistant pkg-config qt4-dev-tools qt4-qmake subversion qt4-doc
+#apt -y install git mutt iptables-persistent fping mtr htop nano
+#apt -y install linux-firmware
+
+Instalando firmwares em falta
+#apt install firmware-linux firmware-linux-nonfree
+
+Deixando o Debian totalmente em português
+#apt install locales
+#dpkg-reconfigure locales
+selecione:
+en_US ISO-8859-1
+en_US.UTF-8 UTF-8
+pt_BR ISO-8859-1
+pt_BR.UTF-8 UTF-8
+
+e no final escolha: pt_BR.UTF-8 e logo após reinicie o computador
+
+### Configurar a Rede ####
+1 - No servidor
+#vim /etc/network/interfaces
+
+source /etc/network/interfaces.d/*
+
+auto lo
+iface lo inet loopback
+
+auto ens33
+allow-hotplug ens33
+iface ens33 inet dhcp
+
+auto ens34
+allow-hotplug ens34
+iface ens34 inet static
+	address 192.168.10.254
+	netmask	255.255.255.0
+
+allow-hotplug ens35
+iface ens35 inet static
+	address 192.168.20.254
+	netmask	255.255.255.0
+
+Ajustando o arquivo /etc/host.conf
+order bind,hosts
+multi on
+nospoof on
+spoofalert on
+
+Ajustando o Hostname /etc/hostname
+servidor
+------------------------------------------------------------------------------------------------------------------
+Não se esqueça de configurar a máquina 1 e 2.
+
+Para Instalar uma interface gráfica
+apt-get install lxde
+instalar um navegador
+apt-get install iceweasel icewasel-l10n-pt-br
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+Ajustando o Sysctl
+
+O sysctl é utilizado para modificar os parâmetros do kernel em tempo de execução, o seu funcionamento está subordinado ao 
+“procfs“, o qual disponibiliza o diretório “/proc/sys/“, que contem os parâmetros que podem ser lidos e escritos pelo sysctl.
+
+O arquivo de configuração desta ferramenta é o “/etc/sysctl.conf“, desta forma precisamos edita-lo para adicionar as linhas 
+abaixo após as ultimas existentes.
+
+##-------------------------------------------
+# Ajustes de Seguranca
+##-------------------------------------------
+# BOOLEAN Values:
+# a) 0 (zero) - disabled / no / false
+# b) Non zero - enabled / yes / true
+##-------------------------------------------
+
+# Controls whether core dumps will append the PID to the core filename
+# Useful for debugging multi-threaded applications
+kernel.core_uses_pid = 1
+
+#Enable ExecShield protection
+kernel.exec-shield = 1
+kernel.randomize_va_space = 1
+
+# increase system file descriptor limit
+fs.file-max = 65535
+
+#Allow for more PIDs
+kernel.pid_max = 65536
+
+########## IPv4 networking start ##############
+
+# TCP and memory optimization
+# increase TCP max buffer size setable using setsockopt()
+#net.ipv4.tcp_rmem = 4096 87380 8388608
+#net.ipv4.tcp_wmem = 4096 87380 8388608
+
+# increase Linux auto tuning TCP buffer limits
+#net.core.rmem_max = 8388608
+#net.core.wmem_max = 8388608
+#net.core.netdev_max_backlog = 5000
+#net.ipv4.tcp_window_scaling = 1
+
+#Increase system IP port limits
+net.ipv4.ip_local_port_range = 2000 65000
+
+# Controls IP packet forwarding
+net.ipv4.ip_forward = 0
+
+# IP Spoofing protection
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Ignore ICMP broadcast requests
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Disable source packet routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+
+# Block SYN attacks
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 2048
+net.ipv4.tcp_synack_retries = 2
+net.ipv4.tcp_syn_retries = 5
+
+# Accept Redirects? No, this is not router
+net.ipv4.conf.all.secure_redirects = 0
+# Ignore ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+
+# Send redirects, if router, but this is just server
+# Ignore send redirects
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# Log Martians (http://en.wikipedia.org/wiki/Martian_packet)
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+
+# Log packets with impossible addresses to kernel log? yes
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+
+# Ignore all ICMP ECHO and TIMESTAMP requests sent to it via broadcast/multicast
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Prevent against the common 'syn flood attack'
+net.ipv4.tcp_syncookies = 1
+
+# Enable source validation by reversed path, as specified in RFC1812
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+########## IPv6 networking start ##############
+
+# Disable IPv6 support
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+
+# Number of Router Solicitations to send until assuming no routers are present.
+# This is host and not router
+net.ipv6.conf.default.router_solicitations = 0
+
+# Accept Router Preference in RA?
+net.ipv6.conf.default.accept_ra_rtr_pref = 0
+
+# Learn Prefix Information in Router Advertisement
+net.ipv6.conf.default.accept_ra_pinfo = 0
+
+# Setting controls whether the system will accept Hop Limit settings from a router advertisement
+net.ipv6.conf.default.accept_ra_defrtr = 0
+
+#router advertisements can cause the system to assign a global unicast address to an interface
+net.ipv6.conf.default.autoconf = 0
+
+#how many neighbor solicitations to send out per address?
+net.ipv6.conf.default.dad_transmits = 0
+
+# How many global unicast IPv6 addresses can be assigned to each interface?
+net.ipv6.conf.default.max_addresses = 1
+
+-----------------------------------------------------------------------------------------------------------------------------------
+###Configurando o servidor de SSH##
+Teoricamente o daemon do SSH deveria ter sido instalado junto com o sistema, mas caso ele ainda não esteja instalado, 
+podemos utilizar o comando abaixo:
+
+apt install openssh-server
+
+Depois de instalado, para configurar o serviço devemos editar o arquivo “/etc/ssh/sshd_config”
+
+nano /etc/ssh/sshd_config
+
+Para evitar alguns ataques direcionados a porta padrão do SSH (22/TCP), vamos alterar a porta utilizada. 
+Desta forma, a primeiro passo será comentar a linha abaixo:
+
+Port 22
+
+E acrescentar as seguintes linha no final do arquivo:
+## ----------------------------------------------------------------------
+#           Ajustes basicos
+## ----------------------------------------------------------------------
+# Arquivo:  /etc/ssh/sshd_config
+## ----------------------------------------------------------------------
+Port 65222
+PermitRootLogin no
+AllowTcpForwarding no
+
+#AllowGroups ssh
+AllowGroups admin users
+
+MaxStartups 5
+MaxAuthTries 3
+DebianBanner no
+
+PrintMotd yes
+PrintLastLog yes
+Banner /etc/issue.net
+
+UseDNS no
+
+Para evitar que o arquivo de configuração sejam editado, por engano, vamos ajustar as suas permissões e protege-los.
+
+sudo chmod 640  /etc/ssh/sshd_config
+sudo chattr +i /etc/ssh/sshd_config
+
+Quando o arquivo tiver de ser editados, antes de tentar edita-lo lembre-se de executar o comando abaixo:
+chattr -i /etc/ssh/sshd_config
+
+E depois de salvar as modificações volte a proteger o arquivo
+chattr +i /etc/ssh/sshd_config
+
+Agora devemos reiniciar o daemon do ssh:
+service ssh restart
+
+E verificar se ele está ativo
+lsof -i:65222
+lsof -i:22
+
+-------------------------------------------------------------------------------------------------------------------------
+
+Configurando o NTP 
+
+O protocolo/serviço NTP é uma das principais forma de mantermos o horário (marca do tempo) sincronizado, este protocolo 
+baseia-se um uma estrutura hierárquica de fornecimento de hora, onde um servidor pode fornecer a marca de tempo para 
+outra máquina que por sua vez compartilha esta informação com outras.
+
+Nosso objetivo é instalar e configurar a versão cliente deste serviço, ou seja precisamos instalar alguns pacotes e em 
+seguida configura-los. Para realizar a instalação do NTP podemos usar:
+
+#apt install ntp ntpdate
+
+Depois de instalado, devemos ajustar as configurações no NTP, que por padrão, estão contidas no arquivo ”/etc/ntp.conf”. 
+Inicialmente precisamos comentar as linhas, ou seja adicionar o caracter “#” no início de cada uma das linhas abaixo:
+
+Em maquinas baseadas em Debian
+
+server 0.debian.pool.ntp.org iburst
+server 1.debian.pool.ntp.org iburst
+server 2.debian.pool.ntp.org iburst
+server 3.debian.pool.ntp.org iburst
+
+restrict -4 default kod notrap nomodify nopeer noquery
+restrict -6 default kod notrap nomodify nopeer noquery
+
+No Brasil os principais servidores de NTP são:
+
+a.st1.ntp.br	 200.160.7.186       2001:12ff:0:7::186
+b.st1.ntp.br	 201.49.148.135
+c.st1.ntp.br	 200.186.125.195
+d.st1.ntp.br	 200.20.186.76
+a.ntp.br	 	 200.160.0.8         2001:12ff::8
+b.ntp.br	 	 200.189.40.8
+c.ntp.br	 	 200.192.232.8
+gps.ntp.br	 	 200.160.7.193       2001:12ff:0:7::193
+
+Para utilizar estes servidores devemos adicionar as seguintes linhas no final do arquivo de configuração do ntp
+
+##------------------------------------------------
+# Ajuste de seguranca
+##------------------------------------------------
+restrict -4 ignore
+restrict -6 ignore
+server 200.160.7.186
+server 201.49.148.135
+server 200.186.125.195
+server 200.20.186.76
+server 200.160.0.8
+server 200.189.40.8
+server 200.192.232.8
+server 200.160.7.193
+
+Antes de reiniciar o serviço do NTP, podemos realizar uma sincronização manual utilizando o comando:
+
+#ntpdate -u 200.160.7.186
+
+Em seguida podemos reiniciar o serviço do ntp
+
+#service ntp restart
+
+Para verificar o Status da sincronização podemos utilizar:
+
+#ntpq -p
+
+O qual deve gerar uma saida semelhante a:
+     remote           refid      st t when poll reach   delay   offset  jitter
+==============================================================================
++ntp1.lncc.br    200.160.7.197    2 u   54   64  377    0.497    6.208  13.077
+*ntp2.lncc.br    140.27.121.190   2 u   58   64  377    0.431    5.407  13.261
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+Serviço de FTP
+# apt -y install vsftpd
+--------------------------------------------------------------------------------------------------------------------------------
+
+Serviço LAMP
+############
+Passo 1 — Instalação do Apache
+#apt update
+#apt install apache2
+#apt install curl
+
+Passo 2 — Instalação do MySQL
+#apt install mysql-server
+#mysql_secure_installation
+
+Passo 3 — Instalação do PHP
+#apt install php libapache2-mod-php php-mysql
+
+#systemctl restart apache2
+#systemctl status apache2
+
+Step 4 — Testando o Processamento PHP no seu Servidor Web
+nano /var/www/html/info.php
+<?php
+phpinfo();
+?>
+
+http://ip_do_seu_servidor/info.php
+---------------------------------------------------------------------------------------------------
+
+Configurar a Rede na Maquina 1 e Maquina 2
+---------------------------------------------------------------------------------------------------
+
+Ativando o Roteamento entre a máquina 1 e 2
+#echo "1" > /proc/sys/net/ipv4/ip_forward
+#iptables -t nat -A POSTROUTING -o ens33 -j MASQUERADE
+
+
+--------------------------------------------
+
+Serviço DNS
+Configuração do DNS
+
+apt-get update
+apt-get install bind9 dnsutils
+
+editar o arquivo /etc/resolv.conf do servidor, arquivo responsavel 
+alterar para 127.0.0.1, sair e salvar
+testar e verificar se o mesmo responde
+
+no cliente 1 adicionar no mesmo arquivo o endereço 192.168.10.1
+no clinete 2 adicionar o endereço 192.168.20.1
+
+testando com nslookup www.google.com, vc consegue verificar o dns que respondeu pelo mesmo.
+
+ajustar as configurações de dns no dhcp para distribuir adequadamente.
+na rede 1 192.168.10.1 e na rede2 192.168.20.1
+
+restartar o servico
+reiniciar as interfaces de rede cli1 e cli2
+
+no servidor alterar o servidor /etc/resolv.conf para
+domain linuxhackudao.int
+search linuxhackudao.int 
+nameserver 127.0.0.1
+
+no servidor dhcp alterar as linhas options no inicio, colocando o nome linuxhackudao.int
+deixar comentado a segunda linha, pois temos um dns para cada rede.
+
+reiniciar o serviço dhcp e bind9
+
+reinciar o servico no cliente1 e 2
+
+------------------------------------------------------------------
+Nos vamos trabalhar com 3 arquivos, 2 já existentes e que vamos criar
+
+1 - no servidor
+vim /etc/bind/named.conf.options
+
+na última linha do arquivo listen-on-v6 { any->none; };
+
+adicionar
+
+	listen-on-v6 { none; };
+	listen-on { localhost; 192.168.10.1; 192.168.20.1; };
+	allow-transfer { none; };
+	allow-query { localhost; 192.168.10.0/24; 192.168.20.0/24; };
+	allow-recursion { localhost; 192.168.10.0/24; 192.168.20.0/24; };
+	version none;
+
+sair e salvar
+
+2 - editar no servidor o arquivo
+    vim /etc/bind/named.conf.local
+	
+	zone "linuxhackudao.int" {
+		type master;
+		file "/etc/bind/linuxhackudao.db";
+	};
+	
+	salvar sair
+
+3 - criar o arquivo /etc/bind/linuxhackudao.db (vamos colocar toda a configuracao do nosso dominio)
+
+$TTL	3600
+@		IN 		SOA		linuxhackudao.int.	root.linuxhackudao.int. ( 
+						1			;Serial
+						604800		;Refresh [1h]
+						86400		;Retry [10m]
+						2419200		;Expire [1d]
+						604800 )	;Negative Cache TTL [1h]
+				
+@		IN 		NS		linuxhackudao.int.
+@		IN		A		192.168.10.1
+@		IN		A		192.168.20.1
+		IN  	MX 5	linuxhackudao.int.
+
+cliente1	IN	A		192.168.10.10
+cliente2	IN 	A		192.168.20.10
+www			IN	CNAME	linuxhackudao.int.
+
+@ define o inicio de uma zona (soa) 
+1 - serial do arquivo, vai sendo alterado a medida que alteramos o arquivo;
+
+Sair e Salvar
+
+reiniciar o bind9 /etc/init.d/bind9 restart
+
+no cliente1 
+ping 192.168.20.10
+ping cliente2
+nslookup cliente2
+nslookup cliente2.linuxhackudao.int
+
+E se eu quiser saber pelo ip qual é o nome de determinada maquina
+
+nslookup 192.168.20.10 (não vai responder, porém perceba que ele resolveu de forma invertido);
+
+configurando a consulta reversa, neste caso preciso configurar no servidor o dns reverso.
+
+vim /etc/bind/named.conf.local
+
+zone "10.168.192.in-addr.arpa" {
+	type master;
+	file "/etc/bind/10.168.192.db";
+};
+
+zone "20.168.192.in-addr.arpa" {
+	type master;
+	file "/etc/bind/20.168.192.db";
+};
+
+Salvar sair
+
+copiar o arquivo
+cp /etc/bind/linuxhackudao.db /etc/bind/10.168.192.db
+
+vim /etc/bind/10.168.192.db
+$TTL	3600
+@		IN 		SOA		linuxhackudao.int.	root.linuxhackudao.int. ( 
+						1			;Serial
+						604800		;Refresh [1h]
+						86400		;Retry [10m]
+						2419200		;Expire [1d]
+						604800 )	;Negative Cache TTL [1h]
+				
+		IN 		NS		linuxhackudao.int.
+
+10		IN		PTR		cliente1.linuxhackudao.int.
+
+
+cp /etc/bind/10.168.192.db /etc/bind/20.168.192.db
+$TTL	3600
+@		IN 		SOA		linuxhackudao.int.	root.linuxhackudao.int. ( 
+						1			;Serial
+						604800		;Refresh [1h]
+						86400		;Retry [10m]
+						2419200		;Expire [1d]
+						604800 )	;Negative Cache TTL [1h]
+				
+		IN 		NS		linuxhackudao.int.
+
+20		IN		PTR		cliente2.linuxhackudao.int.
+
+Salvar e sair, reinicie o servico bind
+teste
+ping cliente2
+nslookup cliente2
+nslookup 192.168.20.10
+-----------------------------------------------------------------------------------------------------------------
+
+Virtuais Hosts
+##############
+
+Introdução
+
+O servidor web Apache é a forma mais popular de servir conteúdo web na Internet.
+
+Ele representa mais da metade de todos os websites ativos na Internet e é extremamente poderoso e flexível.
+
+O Apache divide suas funcionalidades e componentes em unidades individuais que podem ser personalizadas e configuradas 
+independentemente. A unidade básica que descreve um determinado site ou um domínio é chamada virtual host.
+
+Essas denominações permitem ao administrador utilizar um servidor para hospedar múltiplos sites e domínios a partir de 
+uma simples interface ou IP através da utilização do mecanismo de correspondência . Isto é relevante para quem quer hospedar 
+mais de um site em um único VPS (Virtual Private Server).
+
+Cada domínio que esteja configurado irá direcionar o visitante para um diretório específico que mantém as informações 
+daquele site, nunca indicando que o mesmo servidor também é responsável por outros sites. Este esquema é expansível sem 
+qualquer limite de software desde que seu servidor possa suportar a carga.
+
+Pre-requisitos
+Antes de você começar você precisará ter o Apache instalado a fim de trabalhar com estes passos. 
+
+Para os objetivos deste guia, minha configuração fará um virtual host para example.com e outro para teste.com. 
+Estes serão referenciados ao longo do guia, mas você deve substituir seus próprios domínios ou valores enquanto acompanha.
+
+Passo um - Crie a estrutura de diretórios
+O primeiro passo que vamos tomar é criar uma estrutura de diretório que irá armazenar os dados do site que estará 
+servindo aos visitantes.
+
+Nosso document root (o diretório de nível superior que o Apache olha para encontrar o conteúdo para servir) será definido 
+para diretórios individuais sob o diretório /var/www. Vamos criar um diretório aqui para ambos os virtual hosts que 
+estamos planejando fazer.
+
+Dentro de cada um desses diretórios, vamos criar o diretório public_html que irá manter nossos arquivos reais. Isto nos 
+dá certa flexibilidade em nossa hospedagem.
+
+Por exemplo, para nossos sites, nós vamos criar nossos diretórios assim:
+
+sudo mkdir -p /var/www/example.com/public_html
+sudo mkdir -p /var/www/test.com/public_html
+
+Passo Dois - Conceda Permissões
+Agora temos a estrutura de diretórios para nossos arquivos, mas eles são de propriedade de nosso usuário root. 
+Se quisermos que nosso usuário regular esteja apto a modificar arquivos em nossos diretórios web, podemos alterar 
+o proprietário fazendo isto:
+
+sudo chown -R $USER:$USER /var/www/example.com/public_html
+sudo chown -R $USER:$USER /var/www/test.com/public_html
+
+A variável $USER terá o valor do usuário com o qual você está logado atualmente quando você pressionou "ENTER". 
+Fazendo isto, nosso usuário regular agora detém os sub-diretórios public_html onde estaremos armazenando nosso conteúdo.
+
+Devemos também modificar um pouco nossas permissões para garantir que o acesso de leitura é permitido para o diretório web 
+em geral e todos os arquivos e pastas que ele contém de modo que a páginas possam ser servidas corretamente:
+
+sudo chmod -R 755 /var/www
+
+Seu servidor web agora deve ter as permissões que ele precisa para servir o conteúdo, e seu usuário deve ser capaz de 
+criar conteúdo dentro das pastas necessárias.
+
+Passo Três - Crie as Páginas Demo para cada Virtual Host
+
+Temos nossa estrutura de diretório no lugar. Vamos criar algum conteúdo para servir.
+Vamos fazer apenas uma demonstração, assim nossas páginas serão bastante simples. Vamos apenas fazer uma 
+página index.html para cada site.
+
+Vamos começar com example.com. Podemos abrir um arquivo index.html em nosso editor digitando:
+
+nano /var/www/example.com/public_html/index.html
+Neste arquivo, crie um documento HTML simples que indica o site que está conectado. Meu arquivo se parece com isso:
+
+<html>
+  <head>
+    <title>Bem Vindo Example.com!</title>
+  </head>
+  <body>
+    <h1>Successo!  O example.com virtual host funciona!</h1>
+  </body>
+</html>
+Salve e feche o arquivo quando terminar.
+
+Podemos copiar este arquivo para usá-lo como base para nosso segundo site digitando:
+
+cp /var/www/example.com/public_html/index.html /var/www/test.com/public_html/index.html
+
+Podemos, então, abrir o arquivo e modificar as informações pertinentes:
+
+nano /var/www/test.com/public_html/index.html
+<p>
+
+<html>
+  <head>
+    <title>Bem vindo Test.com!</title>
+  </head>
+  <body>
+    <h1>Successo!  The test.com virtual host funciona!</h1>
+  </body>
+</html>
+
+Salve e feche o arquivo também. Agora você tem as páginas necessárias para testar a configuração de virtual host.
+
+Passo Quatro - Crie novos arquivos de Virtual Hosts
+Arquivos de virtual host são arquivos que especificam a configuração real do nosso virtual host e determina como o 
+servidor web Apache irá responder às várias requisições de domínio.
+
+O Apache vem com um arquivo padrão de virtual host chamado 000-default.conf que podemos usar como ponto de partida. 
+Vamos copiá-lo para criar um arquivo de virtual host para cada um de nossos domínios.
+
+Vamos começar com um domínio, configurá-lo, copiá-lo para nosso segundo domínio, e então fazer os pequenos ajustes 
+necessários. A configuração padrão do Ubuntu requer que cada arquivo de virtual host termine em .conf.
+
+Crie o primeiro arquivo de Virtual Host
+Começe copiando o arquivo para o primeiro domínio:
+
+sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/example.com.conf
+
+Abra o novo arquivo em seu editor com privilégios de root:
+
+sudo nano /etc/apache2/sites-available/example.com.conf
+
+O arquivo será algo parecido com isso (eu removi os comentários aqui para tornar o arquivo mais acessível):
+
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+Como você pode ver, não há muito aqui. Vamos personalizar os itens aqui para nosso primeiro domínio e adicionar 
+algumas diretivas adicionais. Esta seção de virtual host corresponde a quaisquer requisições que são feitas na porta 80, 
+a porta padrão HTTP.
+
+Em primeiro lugar, precisamos alterar a diretiva ServerAdmin para um e-mail que o administrador do site possa receber 
+e-mails por ele.
+
+ServerAdmin admin@example.com
+Depois disso, precisamos adicionar duas diretivas. A primeira, chamada ServerName, estabelece o domínio de base que deve 
+corresponder à esta definição de virtual host. Este provavelmente será o seu domínio. A segunda, chamada ServerAlias, 
+define outros nomes que devem corresponder como se fossem o nome de base. Isto é útil para a correspondência de hosts 
+que você definiu, como www:
+
+ServerName example.com
+ServerAlias www.example.com
+A outra única coisa que precisamos mudar para o arquivo de virtual host básico é a localização do documento raiz 
+para este domínio. Nós já criamos o diretório que precisamos, então precisamos apenas alterar a diretiva DocumentRoot para 
+refletir o diretório que criamos:
+
+DocumentRoot /var/www/example.com/public_html
+No total, nosso arquivo de virtualhost deve ficar assim:
+
+<VirtualHost *:80>
+    ServerAdmin admin@example.com
+    ServerName example.com
+    ServerAlias www.example.com
+    DocumentRoot /var/www/example.com/public_html
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+Salve e feche o arquivo.
+
+Copie o primeiro Virtual Host e personalize-o para o Segundo Domínio
+Agora que temos nosso primeiro arquivo de virtual host criado, podemos criar nosso segundo copiando esse arquivo e 
+ajustando-o conforme necessário.
+
+Comece copiando-o:
+
+sudo cp /etc/apache2/sites-available/example.com.conf /etc/apache2/sites-available/test.com.conf
+Abra o novo arquivo com privilégios de root em seu editor:
+
+sudo nano /etc/apache2/sites-available/test.com.conf
+Agora você precisa modificar todas as informações pertinentes para referenciar seu segundo domínio. Quando terminar, 
+ele será algo parecido com isto:
+
+<VirtualHost *:80>
+    ServerAdmin admin@test.com
+    ServerName test.com
+    ServerAlias www.test.com
+    DocumentRoot /var/www/test.com/public_html
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+Salve e feche o arquivo quando terminar.
+
+Passo Cinco - Ative os novos arquivos de Virtual Host
+Agora que criamos nossos arquivos de virtual host, devemos ativá-los. O Apache inclui algumas ferramentas que nos 
+permitem fazer isto.
+
+Podemos utilizar a ferramenta a2ensite para ativar cada um de nossos sites assim:
+
+sudo a2ensite example.com.conf
+sudo a2ensite test.com.conf
+Quando terminar, você precisará reiniciar o Apache para fazer com que estas alterações tenham efeito:
+
+sudo service apache2 restart
+Você provavelmente irá receber uma mensagem dizendo algo como:
+
+* Restarting web server apache2
+ AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.0.1. 
+ Set the 'ServerName' directive globally to suppress this message
+ 
+Esta é uma mensagem inofensiva que não afeta o nosso site.
+
+Passo Seis - Configure o arquivo de hosts local (Opcional)
+
+Se você não usou os nomes de domínio reais que você possui para testar este procedimento e tem usado alguns exemplos de 
+domínios em vez disso, você pode testar ao menos a funcionalidade desse processo modificando temporariamente o 
+arquivo hosts em seu computador local.
+
+Isto irá interceptar todas as requisições para os domínios que você configurou e os apontará para o seu servidor VPS, 
+da mesma forma que o DNS faria se você estivesse utilizando domínios registrados. Isto irá funcionar somente em seu computador, 
+e é útil simplesmente para propósitos de testes.
+
+Certifique-se de que você está operando em seu computador local para estas etapas e não no seu servidor VPS. 
+Você precisará da senha administrativa do computador ou de outra forma, ser membro do grupo administrativo.
+
+Se você está em um computador Mac ou Linux, edite seu arquivo local com privilégios administrativos digitando:
+
+sudo nano /etc/hosts
+
+Se você estiver em uma máquina Windows, você poderá encontrar instruções para alteração do seu arquivo hosts aqui.
+
+Os detalhes que você precisa adicionar são o endereço IP público do seu servidor VPS seguido pelo domínio que você 
+quer usar para alcançar esse VPS.
+
+Para os domínios que eu utilizei neste guia, assumindo que o endereço IP do meu servidor VPS é 111.111.111.111, eu 
+poderia adicionar as seguintes linhas no final do meu arquivos hosts:
+
+127.0.0.1   localhost
+127.0.1.1   guest-desktop
+111.111.111.111 example.com
+111.111.111.111 test.com
+
+Isso irá direcionar todas as requisições para example.com e test.com em nosso computador e enviá-las para nosso 
+servidor em 111.111.111.111. Isso é o que queremos se não somos os proprietários desses domínios, de forma a testar 
+nossos virtual hosts.
+
+Salve e feche o arquivo.
+
+Passo Sete - Teste seus resultados
+Agora que você tem seus virtual hosts configurados, você pode testar sua configuração facilmente indo para os domínios 
+que você configurou em seu navegador web:
+
+http://example.com
+
+http://test.com
+
+Se ambos os sites funcionaram bem, você configurou com sucesso dois virtual hosts no mesmo servidor.
+
+Se você ajustou o arquivo hosts do seu computador doméstico, você pode querer apagar as linhas que você adicionou,
+agora que você verificou que a sua configuração funciona. Isto irá evitar que seu arquivo hosts fique cheio de 
+entradas que não são realmente necessárias.
+
+Se você precisar acessá-los por longo tempo, considere a compra do nome de domínio para cada site que precisar e 
+configure-os para apontar para seu servidor VPS.
+
+Conclusão
+Se você acompanhou, você deve ter um único servidor tratando dois nomes de domínios separados. Você pode expandir 
+este processo seguindo os passos que traçamos acima para fazer virtual hosts adicionais.
+
+Não há nenhum limite de software no número de domínios que o Apache pode tratar, então sinta-se livre para fazer 
+tantos quanto o seu servidor for capaz de suportar.
+----------------------------------------------------------------------------------------------------
+
+Docker
+#######
+Máquina -> 
+Usuário: unochapeco@unodocker6953.cloudapp.net
+Senha:!@#Unochapeco123
+
+Instalar Docker CE on Ubuntu 16.04
+
+Passo 1: Atualize seu software
+apt-get update
+
+Passo 2: Set up do repositorio
+apt-get install apt-transport-https ca-certificates curl software-properties-common
+
+Adicionar o Chave pública do repositório oficial do Docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+
+Use o comando a seguir para setar o repositório estável.
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+Passo 3: Instalar Docker CE
+apt-get update
+apt-get install docker-ce
+
+Passo 4: Crie um usuário
+Se você decidir não utilizar o Docker como root
+
+#adduser user
+#usermod -aG docker user
+#systemctl restart docker
+
+Passo 5: Testar o Docker
+#docker run hello-world
+
+Hello from Docker!
+
+This message shows that your installation appears to be working correctly.
+
+Exercicios
+----------
+1. Hello World
+docker run ubuntu /bin/echo Hello,Docker!
+
+2. Interatividade
+
+- Existência de containers
+docker ps (lista containers ativos)
+docker ps -a (lista container ativos e não ativos)
+docker ps -qa (lista id do container)
+
+- Criar um container e acessar o Shell
+docker run -it ubuntu /bin/bash
+
+- Sair do container
+exit - Sai e mata o container, não apaga a imagem
+ctrl+p+q - Sai e mantém o container ativo
+
+- Status de um container
+docker ps -qa
+docker stats id_container
+
+- listando imagens
+docker images
+
+- removendo containers
+docker rm id_container
+docker rm -f id_container (força a exclusao)
+
+- removendo imagem
+docker rmi id_imagem
+docker rmi -f id_imagem (força a exclusao)
+
+3 - Controlando containers
+
+- Instalando pacotes em um container
+docker run -it --name appx ubuntu /bin/bash
+apt-get update
+apt-get install -y nginx
+nginx -v
+exit
+
+- comitando uma imagem
+docker commit appx repositorio/nomeimage:latest
+docker images
+
+- criando um container autodestrutivel
+docker run -it --rm -p XXXX:80 ubuntu/nginxapp /bin/bash
+service nginx start
+
+- Rodar um container em background
+docker	run	-d	-p	8080:80	ubuntu/nginx /usr/sbin/nginx -g "daemon	off;"
+
+- Apagar todos os containers
+docker rm $(docker ps -qa)
+docker rm -f $(docker ps -qa)  //força a exclusao
+
+- Apagar todas as imagens
+docker rmi $(docker images -qa)
+docker rmi -f $(docker images -qa) //força a exclusao
+
+4 - Construir uma imagem a partir do Dockerfile
+
+- Estrutura do Dockerfile
+Dockerfile:
+FROM ubuntu
+MAINTAINER	Allan <allan.pressi@bandtec.com.br>
+RUN apt-get update
+RUN apt-get install	-y nginx
+
+- Construindo a imagem
+docker build -t <nomedaimagem> .
+
+- Listando a imagem
+docker images
+
+- Verificando se o servidor nginx está UP
+lynx localhost:porta
+curl -IL http://localhost:porta
+
+- Parando todos os containers
+docker stop $(docker ps -aq)
+
+- MAPEANDO	PORTAS
+Dockerfile:
+FROM ubuntu
+MAINTAINER	Allan <allan.pressi@bandtec.com.br>
+RUN apt-get update
+RUN apt-get install	-y nginx
+EXPOSE 80
+
+- Rodando o container novamente
+docker run -d -P ubuntu/nginx /usr/sbin/nginx -g "daemon	off;"
+docker ps
+curl -IL http://localhost:porta
+
+- Verificar a porta gerada
+docker port id_container
+docker port id_container 80
+
+- Copiando Arquivos
+Dockerfile:
+FROM ubuntu
+MAINTAINER	Allan <allan.pressi@bandtec.com.br>
+RUN apt-get update
+RUN apt-get install	-y nginx
+ADD arquivo.txt /tmp/arquivo.txt
+EXPOSE 80	
+
+- Build 
+docker build -t <nomedaimagem> .
+
+- Executando um comando no container
+docker exec id_container/nome <cmd>
+
+5 - copiar arquivos da maquina local para dentro do container
+========================================================
+Executando um container 
+sudo docker run -it --name capp01 ubuntu /bin/bash
+
+- criar um arquivo local /tmp
+cd /tmp
+docker cp exemplo6:/tmp/arquivo1 /tmp/meura_arq.txt 
+docker cp exemplo6:/tmp/arq* /tmp/. (erro não funciona)
+docker cp exemplo6:/tmp/ /tmp/tmp-exemplo6 (funciona)
+docker cp foo.txt mycontainer:/foo.txt
+docker cp mycontainer:/foo.txt foo.txt
+
+docker run -it -v <DIR LOCAL>:/mnt <IMAGE>  
+docker run -it --name exemplo6.b ubuntu /bin/bash
+docker run -it --name exemplo6.c --hostname myconatiner ubuntu /bin/bash
+
+docker run -it -v <DIR LOCAL>:/mnt <IMAGE>  
+
+============
+6 - Privilegiando container
+=====================================
+docker pull andyshinn/dnsmasq
+docker run -dt --name exemplo7 andyshinn/dnsmasq
+** nao funcionou **
+docker rm exemplo7
+docker run -dt --name exemplo7 --privileged andyshinn/dnsmasq
+** privilegios aos recursos de edicao de hostname
+** recursos de rede
+docker stop exemplo7
+docker rm exemplo7
+docker run -dt --name exemplo7 --cap-add=NET_ADMIN andyshinn/dnsmasq
+docker stop exemplo7
+docker rm exemplo7
+docker run -i --rm --name exemplo8 --hostname exemplo8 -p 80:80
+   -v /usr/src/CURSO-CRSUDY001/exemplo8/index.html:/usr/share/nginx/html/index.html nginx-exemplo5:v3 
+** -v copia local para remoto
+docker run -d --name exemplo8 --hostname exemplo8 -p 80:80
+   -v /usr/src/CURSO-CRSUDY001/exemplo8/index.html:/usr/share/nginx/html/index.html nginx-exemplo5:v3 
+
+7 - Usando variaveis no shell
+v=exemplo9 ; docker run -it --name $v --hostname $v ubuntu /bin/bash
+
+- baixa nova img
+docker pull sameersbn/mysql:latest
+
+-veja a variavel do ambiente no hub.docker.com e procurar sameersbn/mysql:latest
+V = A0502E02 ; docker run -it --rm --name $v --hostname $v -e 'DB_NAME=db' -e 'DB_USER=user1 -e 'DB_PASS=123' sameersbn/mysql:latest
+
+8 - MAPEAMENTO DE PORTAS
+aula=503 //criar variavel
+docker run -dt --name $aula-ex01-a ubuntu /bin/bash
+docker run -dt --name $aula-ex01-b -p 80XX:80 ubuntu /bin/bash
+docker port $aula-ex01-b
+docker run -dt --name $aula-ex02-a -p 23:23 -p 81-85:81-85 ubuntu /bin/bash
+docker rm $aula-ex02-a
+-rede especifica
+docker run -dt --name $aula-ex03-a -p 192.168.0.110:24:24 ubuntu /bin/bash
+docker run -dt --name $aula-ex03-b -p 53:53/udp ubuntu /bin/bash
+docker run -dt --name $aula-ex03-c -p 50-55:50-55/udp 
+                                   -p 192.168.0.110:100:101/tcp 
+                                   -p 81-89:91-99 
+								   ubuntu  /bin/bash
+
+9 - VOLUME DENTRO DOS CONTAINEIRS 
+docker run -i --rm --name exemplo8 -p 80:80 -v /local/index.html:/usr/share/nginx/html/index.html nginx-exemplo5:v3
+
+10 - LINKAR CONTAINERS ***************
+docker run -dt --name aula-ex01-a ubuntu /bin/bash
+docker run -dt --name aula-ex01-b --link $aula-ex01-a	ubuntu /bin/bash
+//fez uma ponte entre a e b
+//montar 3 maquina sem link
+docker run -dt --name $aula-ex01-c	ubuntu /bin/bash
+docker exec $aula-ex01-c ping $aula-ex01-a -c 3 (nao vai funcionar)
+docker exec $aula-ex01-b ping $aula-ex01-a -c 3 
+docker exec $aula-ex01-a ping $aula-ex01-b -c 3 
+
+//apelido de maquinas
+docker run -dt --name $aula-ex01-d 
+    --link $aula-ex01-a:l1 
+	--link $aula-ex01-b:l2 
+	--link $aula-ex01-c
+	ubuntu /bin/bash
+	
+docker exec $aula-ex01-d ping l1 -c 3
+docker exec $aula-ex01-d ping $aula-ex01-a -c 3
+docker exec $aula-ex01-d ping l2 -c 3
+docker exec $aula-ex01-d ping $aula-ex01-b -c 3
+docker exec $aula-ex01-d ping l3 -c 3
+docker exec $aula-ex01-d ping $aula-ex01-c -c 3
+
+docker run -dt --name $aula-ex01-e ubuntu /bin/bash 
+docker exec $aula-ex01-d ping $aula-ex01-e -c 3
+
+11 - INSPECIONANDO CONTAINER*******
+docker ps
+docker run -dt --name $aula-ex01 --hostname $aula-ex01 -p 80:80 -p81:91 -v /tmp:/tmp ubuntu /bin/bash
+docker inspect $aula-ex01
+docker inspect --format '{{.Id}}' $aula-ex01 
+docker inspect --format '{{.NetworkSettings.IPAddress}}' $aula-ex01 
+docker inspect --format 'Inf: {{.Name}} | {{.Config.Hostname}} | {{.NetworkSettings.IPAdress}}' $aula-ex01 
+
+***diff
+docker diff $aula-ex01
+docker exec $aula-ex01 touch /usr/src/arquivo1
+docker exec $aula-ex01 touch /usr/src/arquivo2
+docker diff
+docker exec -it $aula-ex01 bash
+echo "alter file" >> /usr/src/arquivo2
+exit
+
+*** LOG
+docker stop 506-ex01
+docker pull dell/wordpress
+docker run -dt --name $aula-ex02 -p 80:80 -p 443:443 -p 3306:3306 dell/wordpress
+//no browser validar
+docker logs $aula-ex02
+
+******* EXPORTANDO E IMPORTANDO CONTAINERS *******
+aula=508
+clear
+docker run -dt --name $aula-ex01 ubuntu /bin/bash
+docker stop 506-ex02
+docker exec $aula-ex01 touch /usr/src/arquivo-backup1
+docker diff $aula-ex01
+docker export -o /tmp/container-$aula-ex01.tar $aula-ex01
+ls -lha /tmp
+docker rm -f 508-ex01
+cat /tmp/container-$aula-ex01.tar | docker import - $aula-ex01:v1
+docker run -df --name $aula-ex01-b $aula-ex01:v1 /bin/bash
+docker exe $aula-ex01-v -lha /usr/src
+
+**** Redes no Docker ***
+##ajuda
+sudo docker network --help
+
+##listando as redes existentes
+sudo docker network ls
+
+##criando uma rede
+sudo docker network create frontend
+
+##ajuda sobre criação de redes
+sudo docker network create --help
+
+##adicionando um container à uma rede
+sudo docker run --name webserver -d -P --net=frontend nginx
+
+##verificando a rede no container
+sudo docker exec -ti webserver  sh -c 'ip addr'
+
+#adicionar um container existente
+sudo docker network connect <rede> <container>
+#excluir um container de uma rede
+sudo docker network disconnect <rede> <container>
+
+##inspescionando container
+sudo docker network inspect frontend
+
+##Montando a rede
+1) Criar a rede
+sudo docker network create pvt
+2) executar um container com BD
+sudo docker run -d --net=pvt -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=auladoc --name db1 mysql
+3) Inspecionar a REde
+sudo docker network inspect pvt
+4) Criar o servidor web
+sudo docker run -d --name web nginx
+5) Pingando o container DB a partir do servidor web
+sudo docker exec -ti web sh -c 'ping -c 4 db1'
+6) Conectar o servidor web a mesma rede
+sudo docker network connect pvt web
+7) Refazer o teste de conexão.
+sudo docker exec -ti web sh -c 'ping -c 4 db1'
+8) Inspecionar a REde
+sudo docker network inspect pvt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
